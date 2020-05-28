@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
+#include <Servo.h>
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 int inl11=1;
 int inl12=2;
@@ -14,7 +15,18 @@ int enl1=18;
 int enl2=19;
 int enr1=20;
 int enr2=21;
-
+int trig=11;
+int echo=12;
+float sensorval(){
+  digitalWrite(trig,LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  int duration = pulseIn(echo, HIGH);
+  int distance = duration * 0.034 / 2;
+  return distance;
+}
 void yawRight(int flag){
   if(flag==1){
     analogWrite(enl1,240);
@@ -39,16 +51,24 @@ void yawRight(int flag){
 }
 void moveForward(int flag){
   if(flag==1){
-    analogWrite(enl1,245);
-    analogWrite(enr1,245);
-    analogWrite(enl2,255);
-    analogWrite(enr2,255);
+    if(sensorval>100){
+      analogWrite(enl1,245);
+      analogWrite(enr1,245);
+      analogWrite(enl2,255);
+      analogWrite(enr2,255);
+    }
   }
   else if(flag==0){
     analogWrite(enl1,255);
     analogWrite(enr1,255);
     analogWrite(enl2,245);
     analogWrite(enr2,245);
+  }
+  else if(flag==2){
+    analogWrite(enl1,255);
+    analogWrite(enr1,255);
+    analogWrite(enl2,255);
+    analogWrite(enr2,255);
   }
   digitalWrite(inl11,HIGH);
   digitalWrite(inl12,LOW);
@@ -95,13 +115,17 @@ void setup() {
   pinMode(inr12,OUTPUT);
   pinMode(inr21,OUTPUT);
   pinMode(inr22,OUTPUT);
-  
+  pinMode(echo,INPUT);
+  pinMode(trig,OUTPUT);
 }
+
 void loop() {
   while(Serial.available()){
     char c=Serial.read();
     if(c=='l')
       land();
+    else if(c=='p')
+      moveForward(2);
     else if(c=='f')
       moveForward(1);
     else if(c=='t'){
@@ -113,18 +137,16 @@ void loop() {
         if((ch-h)<-3)
           yawRight(1);
         else if((ch-h)>3)
-          yawRight(0);
-            
+          yawRight(0);            
       }      
     }
     else if(c=='q')   //yawleft
       yawRight(0);
     else if(c=='w')   //yawright
       yawRight(1);
-    else if(c=='e')   //mode Forward
+    else if(c=='e')   //move Forward
       moveForward(1);
-    else if(c=='r')   //moce backward
+    else if(c=='r')   //move backward
       moveForward(0);
   }
-
 }
