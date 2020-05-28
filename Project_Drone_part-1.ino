@@ -7,11 +7,9 @@
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include <math.h>
-
 //(gps->tx,rx)(motor->8digital,4analog)(acce-2 Analog)(communication-tx,rx)
 //(10 Analog, 1 txrx)    (esp->gps)(nano->motor,acce)
 // return to fixed block or place where started; add return to menu in Blynk
-
 static const int RXPin = 4, TXPin = 3;
 static const uint32_t GPSBaud = 4800;
 TinyGPSPlus gps;
@@ -22,7 +20,12 @@ char pass[]="123456789";
 double destlat=0.000000;
 double destlon=0.000000; 
 float heading=0.000;
-
+BLYNK_WRITE(V6){
+  String s=param.asStr();
+  destlat=s.toFloat();
+  s=param.asStr();
+  destlon=s.toFloat();
+}
 BLYNK_WRITE(V4){
   int Y=param[1].asInt();
   if(Y>512)
@@ -67,26 +70,21 @@ void angle(){
   heading=atan2(x,y);
 }
 void adjust(int h,char c){
-  if(c=='l')
-    Serial.print(c);  
-  else if(c=='t'){
+  if(c=='t'){
     Serial.print(c);
     Serial.print(h);    
   }
-  else if(c=='f')
+  else
     Serial.print(c);
 }
 BLYNK_WRITE(V1){
   switch(param.asInt()) {
     case 1:{      //Manual      
-      break;  
-    }
-    case 2:{      //Disinfectant
-      
       break;
     }
-    case 3:{      //Automatic
+    case 2:{      //Automatic
       angle();
+      adjust(heading,'p');
       for(;;){
         double currentlat=0.000000;
         double currentlon=0.000000;
@@ -95,7 +93,7 @@ BLYNK_WRITE(V1){
           currentlat=gps.location.lat();
           currentlon=gps.location.lng();
         }
-        if(distance(currentlat,currentlon)<0.5){
+        if(distance(currentlat,currentlon)<1){
           Blynk.virtualWrite(V5,"www.google.com");
           Blynk.virtualWrite(V6,"www.google.com");
           break;
@@ -105,9 +103,8 @@ BLYNK_WRITE(V1){
           adjust(heading,'f');
         }
 
-      }
-      adjust(heading,'l');
-      
+      } 
+      adjust(heading,'l');      
       break;
     }
   }
